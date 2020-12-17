@@ -1,0 +1,30 @@
+{% extends 'auctions/layout.html' %} 
+
+
+{% block title %}
+    Watchlist
+{% endblock title %}
+    
+
+{% block body %}
+    
+    {% if isempty %}
+        <h1>No item in watchlist</h1>
+    {% else %} 
+        
+        {% for items in watchlist %}
+            <a href="{% url 'item' items.item.pk %}">
+                <div style="border:1px solid black; margin:10px;" class="container">
+                    <img src="{{ items.item.image_url }}" height="240px" alt="image of {{ items.item.title }}">
+                    <strong>{{ items.item.title }}</strong>
+                    <span>{{ items.item.category }}</span>
+                    <span>{{ items.item.starting_bid }}</span>
+                    <span>{{ items.item.description }}</span>
+                </div>
+            </a>
+        {% endfor %}
+                   
+    {% endif %}
+        
+{% endblock body %}
+    

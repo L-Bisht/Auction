@@ -1,0 +1,66 @@
+{% extends 'auctions/layout.html' %}
+
+
+{% block title %}
+    {{ details.title }}
+{% endblock title %}
+
+
+{% block body %}
+    <img src="{{ details.image_url }}" width="480px" alt="{{details.title}}">
+    <strong>{{ details.title }}</strong>
+    <span>{{ details.category }}</span>
+    <span>{{ details.starting_bid }}</span>
+    <span>{{ details.description }}</span>
+
+    {% if highest == 0 %}
+        <span>No bids yet</span>
+    {% else %}
+        <span>{{ highest }}</span>
+    {% endif %}
+
+    {% if user.is_authenticated %}
+        
+        {% if not owner %}
+            
+            {% if details.winner == request.user %}
+                <h1>You won</h1>
+            {% endif %}
+                
+            {% if inwatchlist %}
+                <a href="{% url 'remove_item' details.pk %}">Remove from Watchlist</a>
+            {% else %}
+                <a href="{% url 'add_item' details.pk %}">Add to Watchlist</a>
+            {% endif %}
+            {% if details.is_active %}
+                <form action="{% url 'bid' details.pk %}" method="POST">
+                    {% csrf_token %}
+                    <input type="number" name="bid" id="bid" 
+                        {% if highest > details.starting_bid %}
+                            min="{{ highest }}"
+                        {% else %}
+                            min="{{ details.starting_bid }}"
+                        {% endif %}>
+                    <input type="submit" value="Bid">
+                </form>
+            {% endif %}
+        {% else %}  
+            {% if details.is_active == True %}
+                <a href="{% url 'close_auction' details.pk %}">Close Auction</a>
+            {% endif %}
+        {% endif %}
+        <div class="container">
+            <form action="{% url 'comment' details.pk %}" method="POST">
+                {% csrf_token %}
+                <textarea required name="comment" id="comment" rows="10" placeholder="Comments......."></textarea>
+                <input type="submit" value="Comment">
+            </form>
+        </div>
+    {% endif %}
+    
+    {% for comment in comments %}
+        <h3>{{comment.comment}}</h3>
+        <h3>{{comment.commenter}}</h3>
+    {% endfor %}
+        
+{% endblock body %}
