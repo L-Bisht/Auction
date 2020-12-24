@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
@@ -11,6 +12,11 @@ from .models import Category, User, AuctionListing, Bid, Comment, WatchList
 def index(request):
     print("Inside index:")
     return render(request, "auctions/index.html", {
+        "items" : AuctionListing.objects.filter(is_active=True)
+    })
+
+def all(request):
+    return render(request, "auctions/all.html", {
         "items" : AuctionListing.objects.all()
     })
 
@@ -22,13 +28,20 @@ def create(request):
         title = request.POST["title"]
         description = request.POST["description"]
         bid = request.POST["bid"]
-        if (not title) or (not description) or (not bid):
-            return HttpResponseRedirect("Title, bid and description are mandatory")
-        category = request.POST["category"]
-        img_url = request.POST["imgurl"]
-        item = AuctionListing(owner=request.user ,title=title, description=description, starting_bid=bid,
+
+        if not title:
+            messages.warning(request, 'Title is required')
+        elif not description:
+            messages.warning(request, 'Description is required')
+        elif not bid:
+            messages.warning(request, 'Bid is required')
+        else:
+            category = request.POST["category"]
+            img_url = request.POST["imgurl"]
+            item = AuctionListing(owner=request.user ,title=title, description=description, starting_bid=bid,
                               image_url=img_url, category=Category.objects.get(type=category), is_active=True)
-        item.save()
+            item.save()
+            messages.success(request, 'Item added successfully')
         return HttpResponseRedirect(reverse("index"))
     else:
         categories = Category.objects.all()
@@ -49,6 +62,7 @@ def login_view(request):
         # Check if authentication successful
         if user is not None:
             login(request, user)
+            messages.success(request, 'Logged in Successfully')
             return HttpResponseRedirect(reverse("index"))
         else:
             return render(request, "auctions/login.html", {
@@ -61,6 +75,7 @@ def login_view(request):
 def logout_view(request):
     print("Inside logout")
     logout(request)
+    messages.success(request, 'Logged out successfully')
     return HttpResponseRedirect(reverse("index"))
 
 
@@ -91,6 +106,7 @@ def register(request):
     else:
         return render(request, "auctions/register.html")
 
+# Fetch the selected listing if it exist
 def item(request, id):
     print("Inside item")
     details = AuctionListing.objects.get(pk=id)
@@ -121,10 +137,11 @@ def item(request, id):
         "highest" : highest_bid,
         "owner" : owner,
         "inwatchlist" : watchlist,
-        "comments" : Comment.objects.filter(item=details)
+        "comments" : Comment.objects.filter(item=details),
+        "min_bid" : highest_bid + 1
     })
 
-
+# To place bids
 @login_required
 def bid(request, id):
     if request.method == "POST":
@@ -134,15 +151,18 @@ def bid(request, id):
         except Bid.DoesNotExist:
             current = Bid(item=AuctionListing.objects.get(pk=id), highest=bid, bidder=request.user)
 
+        # Record the bid if its higher than current bid
         if bid < current.highest:
-            return HttpResponse('Invalid Bid')
-        current.highest = bid
-        current.save()
+            messages.warning(request, 'Invalid bid')
+        else:
+            messages.success(request, 'Bid placed successfully')
+            current.highest = bid
+            current.save()
         return HttpResponseRedirect(reverse("item", kwargs={'id':id}))
     else:
         HttpResponse("Invalid Request")
 
-
+# To fetch watchlist
 @login_required
 def watchlist(request):
     print("Inside Watchlist")
@@ -159,6 +179,7 @@ def watchlist(request):
         "isempty" : isempty
     })
 
+# To add item to watchlist
 @login_required
 def add_item(request, id):
     print("Inside Add item")
@@ -167,48 +188,63 @@ def add_item(request, id):
     except WatchList.DoesNotExist:
         listitem = WatchList(user=request.user, item=AuctionListing.objects.get(pk=id))
         listitem.save()
-    return HttpResponseRedirect(reverse('watchlist'))
+        messages.success(request, 'Item added to watchlist')
+    return HttpResponseRedirect(reverse('item', kwargs={'id':id}))
 
+# To remove item from watchlist
 @login_required
 def remove_item(request, id):
     print("Inside Remove item")
     try:
         WatchList.objects.get(user=request.user, item=AuctionListing.objects.get(pk=id)).delete()
+        messages.success(request, 'Item removed from watchlist')
     except WatchList.DoesNotExist:
-        return HttpResponse("Item does not exist")
-    return HttpResponseRedirect(reverse('watchlist'))
+        messages.warning(request, 'Item does not exist')
+    return HttpResponseRedirect(reverse('item', kwargs={'id':id}))
 
-
+# To close the auction
 @login_required
 def close(request, id):
+    print("Inside close")
     details = AuctionListing.objects.get(pk=id)
+    print(details)
     # To Prevent non owner from closing the auction
     if not (details.owner == request.user):
         return HttpResponse("You are not authorized to view this page")
     else:
+        print("Inside else")
+        print(Bid.objects.filter(item=details).values('bidder'))
         details.is_active = False
-        details.winner = User.objects.get(pk=Bid.objects.filter(item=details).values('bidder')[0]['bidder'])
+        try:
+            details.winner = User.objects.get(pk=Bid.objects.filter(item=details).values('bidder')[0]['bidder'])
+            messages.success(request, 'Auction closed successfully')
+        except IndexError:
+            messages.warning(request, 'Auction closed without any bids')
         details.save()
-        return HttpResponseRedirect(reverse('index'))
+        return HttpResponseRedirect(reverse('item', kwargs={'id': id}))
 
+# To comment on the item
 @login_required
 def comment(request, id):
     if request.method == "POST":
         comment = request.POST["comment"]
         # To prevent Empty comments
         if not comment:
-            return HttpResponse("Add Comment....")
+            messages.error(request, 'Empty Comment not allowed')
         elif len(comment) > 256:
-            return HttpResponse("Word limit exceeded")
-        obj = Comment(commenter=request.user, item=AuctionListing.objects.get(pk=id), comment=comment)
-        obj.save()
-        return HttpResponseRedirect(reverse('index'))
+            messages.error(request, 'Max length exceeded')
+        else:
+            obj = Comment(commenter=request.user, item=AuctionListing.objects.get(pk=id), comment=comment)
+            obj.save()
+        return HttpResponseRedirect(reverse('item', kwargs={'id': id}))
 
+# To fetch all the categories
 def categories(request):
     return render(request, "auctions/categories.html",{
-        "categories" : Category.objects.all()
+        "categories" : Category.objects.all().order_by('type')
     })
 
+# List all the item in that category
 def category(request, name):
     return render(request, "auctions/category.html", {
         "items" : AuctionListing.objects.filter(category=Category.objects.get(type=name)),

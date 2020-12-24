@@ -26,7 +26,7 @@ class AuctionListing(models.Model):
     is_active = models.BooleanField(default=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE,
                               related_name="owner")
-    winner = models.ForeignKey(User, null=True, on_delete=SET_NULL,
+    winner = models.ForeignKey(User, blank=True, null=True, on_delete=SET_NULL,
                                 related_name="victor")
     def __str__(self):
         return f"{ self.title } with following details {self.description} created by {self.owner} with starting bid{self.starting_bid}"

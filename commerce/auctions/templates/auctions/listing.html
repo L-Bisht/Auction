@@ -1,66 +1,95 @@
 {% extends 'auctions/layout.html' %}
-
+{% load static %}
 
 {% block title %}
     {{ details.title }}
-{% endblock title %}
+{% endblock title %}  
 
-
-{% block body %}
-    <img src="{{ details.image_url }}" width="480px" alt="{{details.title}}">
-    <strong>{{ details.title }}</strong>
-    <span>{{ details.category }}</span>
-    <span>{{ details.starting_bid }}</span>
-    <span>{{ details.description }}</span>
-
-    {% if highest == 0 %}
-        <span>No bids yet</span>
-    {% else %}
-        <span>{{ highest }}</span>
-    {% endif %}
-
-    {% if user.is_authenticated %}
-        
-        {% if not owner %}
-            
-            {% if details.winner == request.user %}
-                <h1>You won</h1>
-            {% endif %}
-                
-            {% if inwatchlist %}
-                <a href="{% url 'remove_item' details.pk %}">Remove from Watchlist</a>
+{% block body %}      
+    <div class="row">
+        <div class="col-sm-12 col-lg-5">        
+            {% if not details.image_url %}
+                <img src="{% static 'auctions/default.jpg' %}" width="480px" alt="{{details.title}}">
             {% else %}
-                <a href="{% url 'add_item' details.pk %}">Add to Watchlist</a>
+                <img src="{{ details.image_url }}" width="480px" alt="{{details.title}}">
             {% endif %}
-            {% if details.is_active %}
-                <form action="{% url 'bid' details.pk %}" method="POST">
-                    {% csrf_token %}
-                    <input type="number" name="bid" id="bid" 
-                        {% if highest > details.starting_bid %}
-                            min="{{ highest }}"
-                        {% else %}
-                            min="{{ details.starting_bid }}"
-                        {% endif %}>
-                    <input type="submit" value="Bid">
-                </form>
+        </div>
+        <div class="col-sm-12 col-lg-7">
+            <h1><strong>{{ details.title }}</strong></h1>
+            <h4 class="text-secondary">Category: {{ details.category }}</h4>
+            <h5>Starting bid: &#8377;&nbsp;{{ details.starting_bid }}</h5>
+            {% if highest == 0 %}
+                <h5>No bids yet</h5>
+            {% else %}
+                <h5>Current highest bid: &#8377;&nbsp;{{ highest }}</h5>
             {% endif %}
-        {% else %}  
-            {% if details.is_active == True %}
-                <a href="{% url 'close_auction' details.pk %}">Close Auction</a>
+            <h5>Description:</h5>
+            <h6 class="text-secondary">{{ details.description }}</h6>
+            
+            {% if not details.is_active %}
+                <h5 class="text-danger">Auction Closed</h5>
             {% endif %}
-        {% endif %}
-        <div class="container">
+
+            {% if user.is_authenticated %} 
+                {% if not owner %}  
+                    {% if details.winner == request.user %}
+                        <h1>You won</h1>
+                    {% endif %}
+
+                    {% if details.is_active %}
+                        <form action="{% url 'bid' details.pk %}" method="POST">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                &#8377;&nbsp;
+                                <input style="width:120px;" class="form-control" type="number" name="bid" id="bid" 
+                                    {% if highest >= details.starting_bid %}
+                                        min="{{ min_bid }}"
+                                        value="{{ min_bid }}"
+                                    {% else %}
+                                        min="{{ details.starting_bid }}"
+                                        value="{{ details.starting_bid }}"
+                                    {% endif %}>
+                                <input class="mt-2 btn btn-warning text-white" type="submit" value="Place Bid">
+    
+                            </div>
+                        </form>
+                    {% endif %}
+
+                    {% if inwatchlist %}
+                        <a class="btn btn-danger" href="{% url 'remove_item' details.pk %}">Remove from Watchlist</a>
+                    {% else %}
+                        <a class="btn btn-success" href="{% url 'add_item' details.pk %}">Add to Watchlist</a>
+                    {% endif %}
+                {% else %}  
+                    {% if details.is_active == True %}
+                        <a class="btn btn-danger" href="{% url 'close_auction' details.pk %}">Close Auction</a>
+                    {% endif %}
+                {% endif %}
+            {% else %}
+                <a class="btn btn-success" href="{% url 'login' %}">Login</a><h6 class="text-success">to place your bid</h6>
+            {% endif %}
+        </div>
+    </div>
+    <div class="row m-3">
+        <h3>Comments Section</h3>
+        {% if user.is_authenticated %}
+        <div class="container-fluid">
             <form action="{% url 'comment' details.pk %}" method="POST">
                 {% csrf_token %}
-                <textarea required name="comment" id="comment" rows="10" placeholder="Comments......."></textarea>
-                <input type="submit" value="Comment">
+                <textarea class="form-control" required name="comment" id="comment" rows="3" placeholder="Comments......."></textarea>
+                <input style="float: right;" class="btn btn-primary mt-2" type="submit" value="Comment">
             </form>
         </div>
-    {% endif %}
-    
+        {% endif %}
+    </div>
     {% for comment in comments %}
-        <h3>{{comment.comment}}</h3>
-        <h3>{{comment.commenter}}</h3>
+        <div class="row m-2">
+            <h5>{{comment.commenter}}</h5>
+        </div>
+        <div class="row m-2">
+            <h6>{{comment.comment}}</h6>
+        </div>
+        <hr>
     {% endfor %}
         
 {% endblock body %}

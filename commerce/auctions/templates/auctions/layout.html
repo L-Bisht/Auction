@@ -2,49 +2,87 @@
 
 <!DOCTYPE html>
 <html lang="en">
-    <head>
+    <head>    
         <title>{% block title %}Auctions{% endblock %}</title>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
         <link href="{% static 'auctions/styles.css' %}" rel="stylesheet">
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+        {% block head %}{% endblock head %}
     </head>
-    <body>
-        <h1>Auctions</h1>
-        <div>
-            {% if user.is_authenticated %}
-                Signed in as <strong>{{ user.username }}</strong>.
-            {% else %}
-                Not signed in.
-            {% endif %}
-        </div>
-        <ul class="nav">
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'index' %}">Active Listings</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'categories' %}">Categories</a>
-            </li>
-            {% if user.is_authenticated %}                
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'create_listing' %}">Create Listing</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'watchlist' %}">Watchlist</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
-                </li>
+    <body style="background-color: rgb(247, 247, 247);">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a href="{% url 'all' %}" class="navbar-brand mb-0 h1">Auctions</a>
 
-            {% else %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'login' %}">Log In</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'register' %}">Register</a>
-                </li>
-            {% endif %}
-        </ul>
-        <hr>
-        {% block body %}
-        {% endblock %}
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'index' %}">Active Listings</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          Categories
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            {% for category in categories_var %}
+                                <a class="dropdown-item" href="{% url 'category' category %}">{{ category.type }}</a>    
+                            {% endfor %}
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'categories' %}">All Categories</a>
+                        </div>
+                    </li>
+
+                    {% if user.is_authenticated %}                
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'create_listing' %}">Create Listing</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'watchlist' %}">Watchlist</a>
+                        </li>
+                </ul>
+                <ul class="navbar-nav ml-auto">
+                    <li style="color:white;" class="nav-item mt-2">
+                        Signed in as <strong>{{ user.username }}</strong>.
+                    </li>
+                    <li class="nav-item ml-3">
+                        <a class="btn btn-danger" href="{% url 'logout' %}">Log Out</a>
+                    </li>
+                </ul>    
+                    {% else %}
+                </ul>
+                <ul class="navbar-nav ml-auto">
+                    <li style="color:white;" class="nav-item mt-2">
+                        Not signed in.
+                    </li>
+                    <li class="nav-item ml-3">
+                        <a class="btn btn-success" href="{% url 'login' %}">Log In</a>
+                    </li>
+                    <li class="nav-item ml-3">
+                        <a class="btn btn-info" href="{% url 'register' %}">Register</a>
+                    </li>
+                </ul>
+                    {% endif %}
+            </div>
+        </nav>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    <div class="alert alert-success">{{message}}</div>
+                {% elif message.tags == 'warning' %}
+                    <div class="alert alert-danger">{{message}}</div>
+                {% elif messages.tags == 'error'%}
+                    <div class="alert alert-warning">{{message}}</div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        <div class="container-fluid mt-3">
+            {% block body %}
+            {% endblock %}
+        </div>
     </body>
 </html>

@@ -1,29 +1,55 @@
 {% extends 'auctions/layout.html' %} 
-
+{% load static %}
 
 {% block title %}
     Watchlist
 {% endblock title %}
-    
 
+{% block head %}
+    <link rel="stylesheet" href="{% static 'auctions/liststyle.css' %}">
+{% endblock head %}  
+    
 {% block body %}
     
     {% if isempty %}
-        <h1>No item in watchlist</h1>
-    {% else %} 
-        
-        {% for items in watchlist %}
-            <a href="{% url 'item' items.item.pk %}">
-                <div style="border:1px solid black; margin:10px;" class="container">
-                    <img src="{{ items.item.image_url }}" height="240px" alt="image of {{ items.item.title }}">
-                    <strong>{{ items.item.title }}</strong>
-                    <span>{{ items.item.category }}</span>
-                    <span>{{ items.item.starting_bid }}</span>
-                    <span>{{ items.item.description }}</span>
+        <h1>No items in watchlist</h1>
+    {% else %}
+        <h2>Watchlist</h2>
+            <div class="p-2 m-0">
+                <div class="row">
+                    {% for items in watchlist %}
+                        <div class="d-flex col-sm-6 col-lg-3">
+                            <a class="text-dark" href="{% url 'item' items.item.pk %}">
+                                <div class="card mt-3" style="width:18rem;">
+                                    {% if not items.item.image_url %}
+                                        <img class="card-img-top" src="{% static 'auctions/default.jpg' %}" alt="image of {{ items.item.title }}">
+                                    {% else %}
+                                        <img class="card-img-top" src="{{ items.item.image_url }}" alt="image of {{ items.item.title }}">
+                                    {% endif %}
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ items.item.title }}</h5>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ items.item.category }}</h6>
+                                        <p class="card-text">
+                                            {{ items.item.description|slice:"0:20" }}..........to visit auction page 
+                                            <a href="{% url 'item' items.item.pk %}"><strong>Click here</strong></a>
+                                        </p>
+                                        
+                                        {% if not items.item.is_active %}
+                                            <p class="text-danger card-text mt-0"><strong>Auction closed</strong></p>
+                                        {% else %}
+                                            <p class="card-text mt-0">
+                                                <strong>
+                                                    Starting Bid: &#8377;&nbsp;{{ items.item.starting_bid }}
+                                                </strong>
+                                            </p>
+                                        {% endif %}  
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    {% endfor %}
                 </div>
-            </a>
-        {% endfor %}
-                   
+            </div>
     {% endif %}
         
 {% endblock body %}
